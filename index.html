@@ -1,0 +1,3065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU Scheduling Simulator | Interactive OS Lab</title>
+<style>
+  :root {
+    --bg-main: #0c1017;
+    --bg-card: #131922;
+    --bg-card-hover: #182232;
+    --bg-input: #0e141c;
+    --border-color: #1f2d40;
+    --border-highlight: #38bdf8;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --accent-cyan: #38bdf8;
+    --accent-blue: #0284c7;
+    --accent-purple: #a855f7;
+    --accent-pink: #f43f5e;
+    --accent-orange: #f97316;
+    --accent-green: #84cc16;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, "Fira Code", monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  header {
+    background: #0d121a;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .menu-icon {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+  }
+  .menu-icon span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--accent-cyan);
+    border-radius: 2px;
+  }
+
+  .app-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .app-subtitle {
+    font-size: 0.76rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-lab {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+  .btn-lab:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  }
+
+  /* Main Layout */
+  .main-container {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 18px;
+    padding: 18px 24px;
+    max-width: 1750px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+  }
+
+  @media (max-width: 1100px) {
+    .main-container {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Panels */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  .card-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Preset Scenarios */
+  .preset-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .preset-row-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn-preset {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .btn-preset:hover {
+    background: #1c2738;
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+  .btn-preset.active {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  /* Process Manager */
+  .quick-add-form {
+    display: grid;
+    grid-template-columns: 55px 1fr 1fr 34px;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  input[type="text"], input[type="number"] {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
+  }
+
+  .btn-icon-add {
+    background: var(--accent-cyan);
+    color: #0c1017;
+    border: none;
+    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+  }
+  .btn-icon-add:hover {
+    background: #7dd3fc;
+    transform: scale(1.05);
+  }
+
+  .action-buttons-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .btn-primary-add {
+    background: var(--accent-cyan);
+    color: #0c1017;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 1;
+    transition: all 0.2s;
+  }
+  .btn-primary-add:hover {
+    background: #7dd3fc;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  }
+
+  .btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover {
+    background: #1c2738;
+    color: var(--text-main);
+  }
+
+  /* Process Table in Sidebar */
+  .process-table-headers {
+    display: grid;
+    grid-template-columns: 50px 1fr 1fr 30px;
+    gap: 8px;
+    padding: 4px 8px 6px 8px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .process-list-container {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .process-list-container::-webkit-scrollbar {
+    width: 5px;
+  }
+  .process-list-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .process-row-item {
+    display: grid;
+    grid-template-columns: 50px 1fr 1fr 30px;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .process-row-item:hover {
+    border-color: #2a3c54;
+  }
+  .process-row-item.highlight-insert {
+    animation: flash-cyan 1.2s ease-out;
+  }
+  .process-row-item.highlight-delete {
+    animation: flash-red 0.5s ease-out;
+  }
+
+  @keyframes flash-cyan {
+    0% { background: rgba(56, 189, 248, 0.35); border-color: var(--accent-cyan); }
+    100% { background: var(--bg-input); border-color: var(--border-color); }
+  }
+  @keyframes flash-red {
+    0% { background: rgba(244, 63, 94, 0.4); border-color: var(--accent-pink); }
+    100% { opacity: 0; transform: scale(0.9); }
+  }
+
+  .badge-pid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.76rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .btn-trash {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s;
+  }
+  .btn-trash:hover {
+    color: var(--accent-pink);
+    background: rgba(244, 63, 94, 0.1);
+  }
+
+  /* Algorithm Selector */
+  .algo-button-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .btn-algo {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 8px 6px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .btn-algo:hover {
+    border-color: #3b506d;
+    color: var(--text-main);
+  }
+  .btn-algo.active {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.15);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+  }
+  .checkbox-label input[type="checkbox"] {
+    accent-color: var(--accent-cyan);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
+
+  .quantum-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-input);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+  }
+  .quantum-row span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .quantum-row input {
+    width: 65px;
+    text-align: center;
+    padding: 4px 6px;
+  }
+
+  /* Playback Controller Card */
+  .playback-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-control {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex: 1;
+    transition: all 0.2s;
+  }
+  .btn-control:hover {
+    background: #1d2839;
+    border-color: var(--accent-cyan);
+  }
+  .btn-control.btn-play {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-weight: 700;
+  }
+  .btn-control.btn-play:hover {
+    background: var(--accent-cyan);
+    color: #0c1017;
+  }
+
+  .scrubber-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .scrubber-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+  }
+  .time-badge {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    min-width: 55px;
+    text-align: center;
+  }
+
+  .speed-select {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+  }
+
+  /* Metric Summary Cards */
+  .metric-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .metric-cards-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-val {
+    font-size: 2.1rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent-cyan);
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .metric-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* Gantt Chart */
+  .gantt-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .gantt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .gantt-title-text {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .gantt-wrapper {
+    overflow-x: auto;
+    padding-bottom: 8px;
+    padding-top: 4px;
+  }
+  .gantt-wrapper::-webkit-scrollbar {
+    height: 6px;
+  }
+  .gantt-wrapper::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .gantt-track {
+    display: flex;
+    min-height: 54px;
+    position: relative;
+    border-radius: 4px;
+    background: #090d13;
+    border: 1px solid #1a2536;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .gantt-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    position: relative;
+    transition: filter 0.2s, transform 0.15s;
+    user-select: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.25);
+  }
+  .gantt-block:hover {
+    filter: brightness(1.2);
+    z-index: 5;
+  }
+  .gantt-block.active-executing {
+    box-shadow: inset 0 0 0 2px #fff, 0 0 16px rgba(56, 189, 248, 0.85);
+    filter: brightness(1.15);
+    animation: pulse-glow 1.5s infinite alternate;
+  }
+
+  @keyframes pulse-glow {
+    from { box-shadow: inset 0 0 0 2px #fff, 0 0 8px rgba(56, 189, 248, 0.4); }
+    to { box-shadow: inset 0 0 0 2px #fff, 0 0 20px rgba(56, 189, 248, 0.9); }
+  }
+
+  .gantt-idle {
+    background: repeating-linear-gradient(
+      -45deg,
+      #131a24,
+      #131a24 8px,
+      #1c2636 8px,
+      #1c2636 16px
+    );
+    color: var(--text-dim);
+    font-size: 0.72rem;
+  }
+
+  .gantt-timeline-ruler {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .ruler-mark {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-align: center;
+  }
+  .ruler-mark:first-child {
+    transform: translateX(0);
+  }
+  .ruler-mark:last-child {
+    transform: translateX(-100%);
+  }
+
+  /* Ready Queue State Card */
+  .state-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .cpu-box-container {
+    background: #0b1118;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 12px;
+  }
+
+  .cpu-label {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 40px;
+  }
+
+  .cpu-running-slot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .idle-text {
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+  }
+
+  .ready-queue-row {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 28px;
+  }
+
+  .queue-chips-container {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .queue-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1c2738;
+    border: 1px solid var(--border-color);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: #fff;
+    animation: fadeIn 0.2s ease;
+  }
+  .queue-chip .rem-bt {
+    color: var(--accent-cyan);
+    font-size: 0.7rem;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* MLFQ Queues View */
+  .mlfq-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+  }
+  .mlfq-queue-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+  }
+  .mlfq-queue-tag {
+    min-width: 140px;
+    color: var(--text-muted);
+  }
+
+  /* Process Metrics Table */
+  .table-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  table.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    text-align: left;
+  }
+
+  table.metrics-table th {
+    padding: 10px 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.76rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  table.metrics-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #16212e;
+    font-family: var(--font-mono);
+  }
+
+  table.metrics-table tr.row-active {
+    background: rgba(56, 189, 248, 0.08);
+    border-left: 3px solid var(--accent-cyan);
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+  }
+  .status-completed {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.5);
+    background: transparent;
+  }
+  .status-running {
+    color: var(--accent-cyan);
+    border-color: rgba(56, 189, 248, 0.6);
+    background: rgba(56, 189, 248, 0.12);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+  }
+  .status-ready {
+    color: var(--accent-amber);
+    border-color: rgba(245, 158, 11, 0.4);
+    background: transparent;
+  }
+  .status-waiting {
+    color: var(--text-dim);
+    border-color: #2b394e;
+    background: transparent;
+  }
+
+  /* Operation Log */
+  .log-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .log-container {
+    height: 160px;
+    overflow-y: auto;
+    background: #090d13;
+    border: 1px solid #1a2433;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .log-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  .log-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .log-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    line-height: 1.45;
+    color: #cbd5e1;
+  }
+
+  .log-time {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    min-width: 50px;
+  }
+  .log-text {
+    flex: 1;
+  }
+  .log-highlight-complete {
+    color: #34d399;
+  }
+  .log-highlight-preempt {
+    color: var(--accent-pink);
+  }
+  .log-highlight-arrive {
+    color: var(--accent-amber);
+  }
+
+  /* Educational Lab Manual Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 7, 12, 0.85);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .lab-modal {
+    background: #111722;
+    border: 1px solid #23354d;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 960px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0e131d;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-close-modal {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .btn-close-modal:hover {
+    color: #fff;
+  }
+
+  .lab-tabs {
+    display: flex;
+    background: #0b0f16;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+  }
+
+  .lab-tab-btn {
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .lab-tab-btn:hover {
+    color: var(--text-main);
+  }
+  .lab-tab-btn.active {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+    background: rgba(56, 189, 248, 0.05);
+  }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .modal-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  .modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .tab-pane {
+    display: none;
+  }
+  .tab-pane.active {
+    display: block;
+  }
+
+  .lab-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    margin-top: 16px;
+    border-bottom: 1px solid #1e2c3f;
+    padding-bottom: 4px;
+  }
+  .lab-section-title:first-child {
+    margin-top: 0;
+  }
+
+  .code-block-container {
+    position: relative;
+    margin: 12px 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #1e2c3f;
+  }
+  .code-header {
+    background: #0c1017;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e2c3f;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+  .btn-copy {
+    background: #182332;
+    border: 1px solid #2b3d54;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-copy:hover {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+  }
+
+  pre.code-block {
+    background: #070a0e;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: #e2e8f0;
+    line-height: 1.45;
+  }
+
+  .faq-card {
+    background: #0d121b;
+    border: 1px solid #1a2536;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .faq-q {
+    padding: 10px 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    background: #101622;
+  }
+  .faq-q:hover {
+    color: var(--accent-cyan);
+  }
+  .faq-a {
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: #94a3b8;
+    border-top: 1px solid #1a2536;
+    display: none;
+    line-height: 1.5;
+  }
+  .faq-card.open .faq-a {
+    display: block;
+  }
+  .faq-arrow {
+    transition: transform 0.2s;
+    font-size: 0.75rem;
+  }
+  .faq-card.open .faq-arrow {
+    transform: rotate(180deg);
+  }
+
+  .formula-box {
+    background: rgba(56, 189, 248, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="menu-icon" title="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="app-title">
+      CPU Scheduling Simulator
+      <span class="app-subtitle" id="algoHeaderBadge">FCFS / SJF-SRTF / Round Robin / MLFQ</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-lab" id="openLabBtn" title="Open Lab Manual, Theory, C Code, & Viva FAQ">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+      Lab Manual & Theory
+    </button>
+  </div>
+</header>
+
+<div class="main-container">
+
+  <!-- Left Sidebar Controls -->
+  <aside class="sidebar">
+    
+    <!-- Presets -->
+    <div class="card">
+      <div class="card-title">Preset scenarios</div>
+      <div class="preset-buttons">
+        <div class="preset-row-top">
+          <button class="btn-preset active" id="presetStandard">Standard Mix</button>
+          <button class="btn-preset" id="presetConvoy">Convoy Effect Demo</button>
+        </div>
+        <button class="btn-preset" id="presetMLFQ">MLFQ Aging & Demotion Demo</button>
+      </div>
+    </div>
+
+    <!-- Process Manager -->
+    <div class="card">
+      <div class="card-title">
+        <span>Process manager</span>
+        <span id="processCountBadge" style="font-size: 0.7rem; color: var(--accent-cyan); font-family: var(--font-mono);">5 processes</span>
+      </div>
+
+      <div class="quick-add-form">
+        <input type="text" id="inputPid" value="P6" placeholder="ID">
+        <input type="number" id="inputAt" placeholder="AT" min="0" max="99">
+        <input type="number" id="inputBt" placeholder="BT" min="1" max="99">
+        <button class="btn-icon-add" id="btnAddProcess" title="Add Process">+</button>
+      </div>
+
+      <div class="action-buttons-row">
+        <button class="btn-primary-add" id="btnSubmitAdd">Add Process</button>
+        <button class="btn-secondary" id="btnClearAll">Clear All</button>
+      </div>
+
+      <div class="process-table-headers">
+        <span>ID</span>
+        <span>AT</span>
+        <span>BT</span>
+        <span></span>
+      </div>
+
+      <div class="process-list-container" id="processListContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Algorithm Selection -->
+    <div class="card">
+      <div class="card-title">Algorithm</div>
+      
+      <div class="algo-button-group">
+        <button class="btn-algo" data-algo="FCFS">FCFS</button>
+        <button class="btn-algo active" data-algo="SJF">SJF</button>
+        <button class="btn-algo" data-algo="RR">Round Robin</button>
+        <button class="btn-algo" data-algo="MLFQ">MLFQ</button>
+      </div>
+
+      <div id="sjfOptions">
+        <label class="checkbox-label">
+          <input type="checkbox" id="checkSrtf">
+          <span>Preemptive (SRTF)</span>
+        </label>
+      </div>
+
+      <div class="quantum-row" id="quantumContainer" style="display: none;">
+        <span>Time quantum Q</span>
+        <input type="number" id="inputQuantum" value="2" min="1" max="20">
+      </div>
+
+      <div id="mlfqInfoNote" style="display: none; margin-top: 10px; font-size: 0.72rem; color: var(--text-dim); line-height: 1.4;">
+        Q0 (RR q=2) &rarr; Q1 (RR q=4) &rarr; Q2 (FCFS). Aging promotes starved processes back to Q0 after 12 units.
+      </div>
+    </div>
+
+    <!-- Playback / Step Controller -->
+    <div class="card playback-card">
+      <div class="card-title">Simulation Playback</div>
+      
+      <div class="playback-controls">
+        <button class="btn-control" id="btnStepBack" title="Step Back (1 unit)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3"></line></svg>
+        </button>
+        <button class="btn-control btn-play" id="btnPlayPause">
+          <span id="playIcon">&#9658;</span> <span id="playText">Play</span>
+        </button>
+        <button class="btn-control" id="btnStepForward" title="Step Forward (1 unit)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"></line></svg>
+        </button>
+        <button class="btn-control" id="btnResetSim" title="Reset Timeline to t=0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        </button>
+      </div>
+
+      <div class="scrubber-row">
+        <input type="range" id="timeScrubber" min="0" max="22" value="22">
+        <div class="time-badge" id="scrubberTimeBadge">t = 22</div>
+        <select class="speed-select" id="speedSelect">
+          <option value="1500">0.5x</option>
+          <option value="800" selected>1.0x</option>
+          <option value="400">2.0x</option>
+          <option value="200">4.0x</option>
+        </select>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Right Main Visual Simulation Area -->
+  <main class="main-content">
+    
+    <!-- Top 4 Summary Cards -->
+    <div class="metric-cards-grid">
+      <div class="metric-card">
+        <div class="metric-val" id="metricTat">9.60</div>
+        <div class="metric-label">Average Turnaround Time</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metricWt">5.20</div>
+        <div class="metric-label">Average Waiting Time</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metricUtil">100.0%</div>
+        <div class="metric-label">CPU Utilization</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metricThroughput">0.227</div>
+        <div class="metric-label">Throughput (proc / unit)</div>
+      </div>
+    </div>
+
+    <!-- Gantt Chart -->
+    <div class="gantt-section">
+      <div class="gantt-header">
+        <span class="gantt-title-text">Gantt chart (click a block to jump to it)</span>
+        <span class="idle-text" id="ganttStatusText" style="font-size: 0.75rem;">Total execution: 22 units</span>
+      </div>
+
+      <div class="gantt-wrapper">
+        <div class="gantt-track" id="ganttTrack">
+          <!-- Rendered dynamically -->
+        </div>
+        <div class="gantt-timeline-ruler" id="ganttRuler">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Ready queue state at t -->
+    <div class="state-section">
+      <div class="card-title">Ready queue state at <span id="queueTimeLabel" style="color: var(--accent-cyan); text-transform: none; font-family: var(--font-mono);">t = 22</span></div>
+      
+      <div class="cpu-box-container">
+        <div class="cpu-label">CPU</div>
+        <div class="cpu-running-slot" id="cpuCurrentSlot">
+          <span class="idle-text">IDLE</span>
+        </div>
+      </div>
+
+      <div class="ready-queue-row">
+        <span>Ready queue (head first)</span>
+        <div class="queue-chips-container" id="readyQueueChips">
+          <span class="idle-text" style="font-size: 0.8rem;">empty</span>
+        </div>
+      </div>
+
+      <div class="mlfq-container" id="mlfqQueuesView" style="display: none;">
+        <div class="mlfq-queue-line">
+          <span class="mlfq-queue-tag">Queue 0 (RR q=2):</span>
+          <div class="queue-chips-container" id="mlfqQ0Chips">empty</div>
+        </div>
+        <div class="mlfq-queue-line">
+          <span class="mlfq-queue-tag">Queue 1 (RR q=4):</span>
+          <div class="queue-chips-container" id="mlfqQ1Chips">empty</div>
+        </div>
+        <div class="mlfq-queue-line">
+          <span class="mlfq-queue-tag">Queue 2 (FCFS):</span>
+          <div class="queue-chips-container" id="mlfqQ2Chips">empty</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Process Metrics Table -->
+    <div class="table-section">
+      <div class="card-title">Process metrics</div>
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th>Process ID</th>
+            <th>Arrival (AT)</th>
+            <th>Burst (BT)</th>
+            <th>Completion (CT)</th>
+            <th>Turnaround (TAT)</th>
+            <th>Waiting (WT)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="metricsTableBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Operation Log -->
+    <div class="log-section">
+      <div class="card-title">
+        <span>Operation log</span>
+        <button id="btnClearLog" style="background: transparent; border: none; color: var(--text-dim); font-size: 0.72rem; cursor: pointer;">Clear Log</button>
+      </div>
+      <div class="log-container" id="logContainer">
+        <!-- Log entries -->
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Educational Lab Manual Modal -->
+<div class="modal-overlay" id="labModal">
+  <div class="lab-modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        Operating Systems Lab Manual: CPU Scheduling
+      </div>
+      <button class="btn-close-modal" id="closeLabBtn">&times;</button>
+    </div>
+
+    <div class="lab-tabs">
+      <button class="lab-tab-btn active" data-tab="tabAim">1. AIM & Theory</button>
+      <button class="lab-tab-btn" data-tab="tabPseudo">2. Pseudo-Code</button>
+      <button class="lab-tab-btn" data-tab="tabCCode">3. C Source Code</button>
+      <button class="lab-tab-btn" data-tab="tabSample">4. Solved Numerical</button>
+      <button class="lab-tab-btn" data-tab="tabFaq">5. Viva Voce & FAQ</button>
+    </div>
+
+    <div class="modal-body">
+      
+      <!-- Tab 1: AIM & Theory -->
+      <div class="tab-pane active" id="tabAim">
+        <h3 class="lab-section-title">Aim of the Experiment</h3>
+        <p>To design, implement, and analyze fundamental CPU Scheduling algorithms in Operating Systems including First-Come, First-Served (FCFS), Shortest Job First (SJF Non-preemptive), Shortest Remaining Time First (SRTF Preemptive), Round Robin (RR), and Multi-Level Feedback Queue (MLFQ). To quantitatively compare the scheduling criteria: Completion Time (CT), Turnaround Time (TAT), Waiting Time (WT), CPU Utilization, and System Throughput.</p>
+
+        <h3 class="lab-section-title">Standard Evaluation Metrics & Mathematical Formulas</h3>
+        <div class="formula-box">
+          1. Turnaround Time (TAT) = Completion Time (CT) - Arrival Time (AT)<br>
+          2. Waiting Time (WT) = Turnaround Time (TAT) - Burst Time (BT)<br>
+          3. Response Time (RT) = Time CPU First Allocated - Arrival Time (AT)<br>
+          4. CPU Utilization (%) = (Total CPU Busy Time / Total Execution Time) &times; 100<br>
+          5. System Throughput = Total Number of Processes Completed / Total Execution Time
+        </div>
+
+        <h3 class="lab-section-title">Key Algorithm Trade-offs</h3>
+        <ul style="padding-left: 20px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
+          <li><strong>FCFS (First-Come, First-Served):</strong> Simplest non-preemptive scheduling policy. Suffers from the <em>Convoy Effect</em> where short processes are stuck waiting behind a massive CPU-bound process.</li>
+          <li><strong>SJF (Shortest Job First):</strong> Non-preemptive. Gives minimum average waiting time for a given set of processes. Can cause starvation of long burst processes if shorter processes keep arriving.</li>
+          <li><strong>SRTF (Shortest Remaining Time First):</strong> Preemptive version of SJF. Preempts the current process whenever a newly arrived process has a shorter remaining burst time.</li>
+          <li><strong>Round Robin (RR):</strong> Preemptive policy designed for time-sharing systems. Allocates a fixed time quantum ($Q$) to each process in cyclic FIFO order. Balances responsiveness across all processes.</li>
+          <li><strong>MLFQ (Multi-Level Feedback Queue):</strong> Dynamic multi-tier scheduler. Separates processes based on their CPU-burst characteristics. Interactive I/O-bound jobs remain at top priority; long CPU-bound jobs drop to lower priority. Aging prevents starvation.</li>
+        </ul>
+      </div>
+
+      <!-- Tab 2: Pseudo-Code -->
+      <div class="tab-pane" id="tabPseudo">
+        <h3 class="lab-section-title">Algorithmic Pseudo-Code</h3>
+
+        <div class="code-block-container">
+          <div class="code-header"><span>Pseudo-Code: Shortest Job First (SJF Non-Preemptive)</span></div>
+          <pre class="code-block">currentTime = 0, completed = 0, n = TotalProcesses
+Sort processes initially by Arrival Time (AT)
+
+While completed < n:
+    candidates = all processes with (AT <= currentTime AND completed == false)
+    
+    If candidates is empty:
+        currentTime = next minimum AT among uncompleted processes
+        Continue
+
+    // Select candidate with minimum Burst Time (BT)
+    currentProcess = candidate with min(BT) [break ties by AT, then PID]
+    
+    // Non-preemptive execution: run to completion
+    currentProcess.CT = currentTime + currentProcess.BT
+    currentProcess.TAT = currentProcess.CT - currentProcess.AT
+    currentProcess.WT = currentProcess.TAT - currentProcess.BT
+    currentProcess.completed = true
+    
+    currentTime = currentProcess.CT
+    completed++</pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header"><span>Pseudo-Code: Round Robin (RR)</span></div>
+          <pre class="code-block">currentTime = 0, ReadyQueue = empty
+Enqueue all processes arriving at t = 0 into ReadyQueue
+
+While (ReadyQueue is not empty OR uncompleted processes remain):
+    If ReadyQueue is empty:
+        currentTime = next process arrival time
+        Enqueue arriving processes
+        Continue
+
+    P = ReadyQueue.dequeue()
+    execSlice = min(Quantum, P.remainingBurst)
+    
+    currentTime += execSlice
+    P.remainingBurst -= execSlice
+
+    // Enqueue any newly arrived processes during this execution slice
+    For each process arrived at or before currentTime:
+        Enqueue into ReadyQueue
+
+    If P.remainingBurst == 0:
+        P.CT = currentTime
+        P.TAT = P.CT - P.AT
+        P.WT = P.TAT - P.BT
+        P.completed = true
+    Else:
+        ReadyQueue.enqueue(P) // append preempted process to back of queue</pre>
+        </div>
+      </div>
+
+      <!-- Tab 3: C Source Code -->
+      <div class="tab-pane" id="tabCCode">
+        <h3 class="lab-section-title">Production C Implementations</h3>
+        
+        <div class="code-block-container">
+          <div class="code-header">
+            <span>cpu_sjf.c (Shortest Job First)</span>
+            <button class="btn-copy" onclick="copyCode('cCodeSjf')">Copy Code</button>
+          </div>
+          <pre class="code-block" id="cCodeSjf">#include &lt;stdio.h&gt;
+#include &lt;stdbool.h&gt;
+
+struct Process {
+    int pid;
+    int at;  // Arrival Time
+    int bt;  // Burst Time
+    int ct;  // Completion Time
+    int tat; // Turnaround Time
+    int wt;  // Waiting Time
+    bool completed;
+};
+
+int main() {
+    int n = 5;
+    struct Process p[] = {
+        {1, 0, 5, 0, 0, 0, false},
+        {2, 1, 3, 0, 0, 0, false},
+        {3, 2, 8, 0, 0, 0, false},
+        {4, 3, 2, 0, 0, 0, false},
+        {5, 4, 4, 0, 0, 0, false}
+    };
+
+    int currentTime = 0, completedCount = 0;
+    float totalTAT = 0, totalWT = 0;
+
+    printf("\n=== SJF (Non-Preemptive) Execution ===\n");
+
+    while (completedCount &lt; n) {
+        int shortestIdx = -1;
+        int minBurst = 999999;
+
+        for (int i = 0; i &lt; n; i++) {
+            if (p[i].at &lt;= currentTime &amp;&amp; !p[i].completed) {
+                if (p[i].bt &lt; minBurst) {
+                    minBurst = p[i].bt;
+                    shortestIdx = i;
+                } else if (p[i].bt == minBurst) {
+                    if (p[i].at &lt; p[shortestIdx].at) shortestIdx = i;
+                }
+            }
+        }
+
+        if (shortestIdx == -1) {
+            currentTime++; // CPU Idle
+            continue;
+        }
+
+        int idx = shortestIdx;
+        currentTime += p[idx].bt;
+        p[idx].ct = currentTime;
+        p[idx].tat = p[idx].ct - p[idx].at;
+        p[idx].wt = p[idx].tat - p[idx].bt;
+        p[idx].completed = true;
+        completedCount++;
+
+        totalTAT += p[idx].tat;
+        totalWT += p[idx].wt;
+    }
+
+    printf("PID\tAT\tBT\tCT\tTAT\tWT\n");
+    for (int i = 0; i &lt; n; i++) {
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n", p[i].pid, p[i].at, p[i].bt, p[i].ct, p[i].tat, p[i].wt);
+    }
+
+    printf("\nAverage Turnaround Time = %.2f\n", totalTAT / n);
+    printf("Average Waiting Time    = %.2f\n", totalWT / n);
+    return 0;
+}</pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span>cpu_round_robin.c (Round Robin)</span>
+            <button class="btn-copy" onclick="copyCode('cCodeRR')">Copy Code</button>
+          </div>
+          <pre class="code-block" id="cCodeRR">#include &lt;stdio.h&gt;
+#include &lt;stdbool.h&gt;
+
+struct Process {
+    int pid;
+    int at;
+    int bt;
+    int rem_bt;
+    int ct;
+    int tat;
+    int wt;
+};
+
+int main() {
+    int n = 4, quantum = 2;
+    struct Process p[] = {
+        {1, 0, 5, 5, 0, 0, 0},
+        {2, 1, 4, 4, 0, 0, 0},
+        {3, 2, 2, 2, 0, 0, 0},
+        {4, 4, 1, 1, 0, 0, 0}
+    };
+
+    int currentTime = 0, completed = 0;
+    int queue[100], front = 0, rear = 0;
+    bool inQueue[10] = {false};
+
+    for (int i = 0; i &lt; n; i++) {
+        if (p[i].at &lt;= currentTime &amp;&amp; !inQueue[i]) {
+            queue[rear++] = i;
+            inQueue[i] = true;
+        }
+    }
+
+    while (completed &lt; n) {
+        if (front == rear) {
+            currentTime++;
+            for (int i = 0; i &lt; n; i++) {
+                if (p[i].at &lt;= currentTime &amp;&amp; !inQueue[i] &amp;&amp; p[i].rem_bt &gt; 0) {
+                    queue[rear++] = i;
+                    inQueue[i] = true;
+                }
+            }
+            continue;
+        }
+
+        int curr = queue[front++];
+        int slice = (p[curr].rem_bt &gt; quantum) ? quantum : p[curr].rem_bt;
+
+        p[curr].rem_bt -= slice;
+        currentTime += slice;
+
+        // Check arrivals
+        for (int i = 0; i &lt; n; i++) {
+            if (p[i].at &lt;= currentTime &amp;&amp; !inQueue[i] &amp;&amp; p[i].rem_bt &gt; 0) {
+                queue[rear++] = i;
+                inQueue[i] = true;
+            }
+        }
+
+        if (p[curr].rem_bt &gt; 0) {
+            queue[rear++] = curr;
+        } else {
+            p[curr].ct = currentTime;
+            p[curr].tat = p[curr].ct - p[curr].at;
+            p[curr].wt = p[curr].tat - p[curr].bt;
+            completed++;
+        }
+    }
+
+    printf("\n--- Round Robin Results (Q = %d) ---\n", quantum);
+    printf("PID\tAT\tBT\tCT\tTAT\tWT\n");
+    float avgTAT = 0, avgWT = 0;
+    for (int i = 0; i &lt; n; i++) {
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n", p[i].pid, p[i].at, p[i].bt, p[i].ct, p[i].tat, p[i].wt);
+        avgTAT += p[i].tat;
+        avgWT += p[i].wt;
+    }
+    printf("Average Turnaround Time = %.2f\n", avgTAT / n);
+    printf("Average Waiting Time    = %.2f\n", avgWT / n);
+    return 0;
+}</pre>
+        </div>
+      </div>
+
+      <!-- Tab 4: Solved Numerical -->
+      <div class="tab-pane" id="tabSample">
+        <h3 class="lab-section-title">Standard Mix Solved Numerical (SJF Non-Preemptive)</h3>
+        <p>Reference process workload table:</p>
+        <table class="metrics-table" style="margin: 10px 0; background: #0c1017;">
+          <thead>
+            <tr><th>Process ID</th><th>Arrival Time (AT)</th><th>Burst Time (BT)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>5</td></tr>
+            <tr><td>P2</td><td>1</td><td>3</td></tr>
+            <tr><td>P3</td><td>2</td><td>8</td></tr>
+            <tr><td>P4</td><td>3</td><td>2</td></tr>
+            <tr><td>P5</td><td>4</td><td>4</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="color: var(--accent-cyan); margin: 12px 0 6px 0;">Scheduling Step-by-Step Timeline:</h4>
+        <ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+          <li><strong>t = 0:</strong> Only P1 is in the system. CPU runs P1 from t = 0 to 5. (CT = 5)</li>
+          <li><strong>t = 5:</strong> P2 (BT=3), P3 (BT=8), P4 (BT=2), P5 (BT=4) are waiting. Shortest job is <strong>P4 (BT=2)</strong>. P4 runs from t = 5 to 7. (CT = 7)</li>
+          <li><strong>t = 7:</strong> Remaining jobs: P2 (BT=3), P5 (BT=4), P3 (BT=8). Shortest job is <strong>P2 (BT=3)</strong>. P2 runs from t = 7 to 10. (CT = 10)</li>
+          <li><strong>t = 10:</strong> Remaining jobs: P5 (BT=4), P3 (BT=8). Shortest is <strong>P5 (BT=4)</strong>. P5 runs from t = 10 to 14. (CT = 14)</li>
+          <li><strong>t = 14:</strong> Only <strong>P3 (BT=8)</strong> remains. P3 runs from t = 14 to 22. (CT = 22)</li>
+        </ol>
+
+        <h4 style="color: var(--accent-cyan); margin: 12px 0 6px 0;">Metrics Verification:</h4>
+        <div class="formula-box">
+          P1: CT = 5  | TAT = 5 - 0 = 5  | WT = 5 - 5 = 0<br>
+          P2: CT = 10 | TAT = 10 - 1 = 9 | WT = 9 - 3 = 6<br>
+          P3: CT = 22 | TAT = 22 - 2 = 20| WT = 20 - 8 = 12<br>
+          P4: CT = 7  | TAT = 7 - 3 = 4  | WT = 4 - 2 = 2<br>
+          P5: CT = 14 | TAT = 14 - 4 = 10| WT = 10 - 4 = 6<br><br>
+          &Sigma; TAT = 5 + 9 + 20 + 4 + 10 = 48 &rarr; <strong>Average Turnaround Time = 48 / 5 = 9.60</strong><br>
+          &Sigma; WT  = 0 + 6 + 12 + 2 + 6 = 26 &rarr; <strong>Average Waiting Time = 26 / 5 = 5.20</strong><br>
+          Total Duration = 22 &rarr; CPU Busy = 22 &rarr; <strong>CPU Utilization = 100.0%</strong><br>
+          Throughput = 5 processes / 22 units = <strong>0.227 proc / unit</strong>
+        </div>
+      </div>
+
+      <!-- Tab 5: Viva Voce & FAQ -->
+      <div class="tab-pane" id="tabFaq">
+        <h3 class="lab-section-title">Frequently Asked OS Lab Viva Voce Questions</h3>
+        
+        <div class="faq-card">
+          <div class="faq-q">1. What is the Convoy Effect and which scheduling algorithm is susceptible to it? <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a">The Convoy Effect occurs in First-Come, First-Served (FCFS) scheduling when a long CPU-bound process occupies the CPU for a large burst, forcing many short I/O-bound processes to wait behind it. This degrades overall CPU utilization, device utilization, and sharply raises average waiting time.</div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">2. Why is SJF / SRTF provably optimal for minimizing Average Waiting Time? <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a">By scheduling the shortest burst first, the waiting time of the shorter process is eliminated or reduced by a greater amount than the increase in waiting time added to the longer process. Consequently, the global sum of waiting times is mathematically minimized.</div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">3. What is Starvation and how does Aging solve it? <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a">Starvation (indefinite blocking) occurs when a process is ready to run but never gets CPU time because higher-priority or shorter jobs keep arriving. Aging solves this by dynamically incrementing the priority of waiting processes as time progresses, guaranteeing that every process eventually reaches the highest priority.</div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">4. What criteria govern the selection of Time Quantum Q in Round Robin? <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a">If Q is too large, Round Robin degenerates into FCFS, hurting response time. If Q is too small, context-switch overhead (saving registers, reloading state, cache misses) consumes an excessive percentage of total CPU time. The empirical rule of thumb is that approximately 80% of CPU bursts should be shorter than Q.</div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">5. Differentiate between Turnaround Time, Waiting Time, and Response Time. <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a"><strong>Turnaround Time (TAT):</strong> Elapsed duration from process arrival to final completion (CT - AT).<br><strong>Waiting Time (WT):</strong> Total time the process spends waiting in the ready queue without CPU access (TAT - BT).<br><strong>Response Time (RT):</strong> Elapsed time from process submission (AT) until it is first allocated to the CPU.</div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">6. How does Multi-Level Feedback Queue (MLFQ) achieve both responsiveness and fairness? <span class="faq-arrow">&#9660;</span></div>
+          <div class="faq-a">MLFQ employs multiple priority queues with increasing time quanta. New jobs start at the topmost queue (short quantum) and are demoted to lower queues if they exhaust their time slice. This ensures short interactive jobs finish quickly, while long batch jobs run efficiently in lower tiers with FCFS or larger slices. Aging periodically elevates starved processes to the top tier.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // --- PALETTE & COLOR ASSIGNMENT MATCHING SCREENSHOT ---
+  const PROCESS_COLORS = [
+    { bg: '#38bdf8', text: '#0c1017' }, // P1 sky blue
+    { bg: '#a855f7', text: '#ffffff' }, // P2 purple
+    { bg: '#f43f5e', text: '#ffffff' }, // P3 pink
+    { bg: '#f97316', text: '#0c1017' }, // P4 orange
+    { bg: '#84cc16', text: '#0c1017' }, // P5 lime green
+    { bg: '#facc15', text: '#0c1017' }, // P6 yellow
+    { bg: '#14b8a6', text: '#ffffff' }, // P7 teal
+    { bg: '#818cf8', text: '#ffffff' }, // P8 indigo
+    { bg: '#fb7185', text: '#0c1017' }, // P9 coral
+    { bg: '#2dd4bf', text: '#0c1017' }  // P10 emerald
+  ];
+
+  function getProcessColor(pid) {
+    const num = parseInt(pid.replace(/\D/g, ''), 10) || 1;
+    return PROCESS_COLORS[(num - 1) % PROCESS_COLORS.length];
+  }
+
+  // --- APPLICATION STATE ---
+  let processes = [
+    { pid: 'P1', at: 0, bt: 5, priority: 3 },
+    { pid: 'P2', at: 1, bt: 3, priority: 1 },
+    { pid: 'P3', at: 2, bt: 8, priority: 4 },
+    { pid: 'P4', at: 3, bt: 2, priority: 2 },
+    { pid: 'P5', at: 4, bt: 4, priority: 5 }
+  ];
+
+  let currentAlgo = 'SJF'; // FCFS, SJF, RR, MLFQ
+  let isPreemptive = false; // for SJF (SRTF)
+  let timeQuantum = 2;
+
+  // Simulation execution timeline data
+  let simulationSchedule = []; // Blocks of { pid, start, end }
+  let simulationTicks = []; // State at each integer t = 0..totalTime
+  let processFinalMetrics = {}; // CT, TAT, WT, RT for each PID
+  let globalSummary = { avgTat: '0.00', avgWt: '0.00', cpuUtil: '100.0%', throughput: '0.000', totalTime: 0 };
+  let operationLogs = []; // Array of { t, message, type }
+
+  // Playback state
+  let currentScrubberTime = 0;
+  let isPlaying = false;
+  let playIntervalTimer = null;
+  let playbackSpeed = 800; // ms
+
+  // --- DOM REFERENCES ---
+  const algoHeaderBadge = document.getElementById('algoHeaderBadge');
+  const processCountBadge = document.getElementById('processCountBadge');
+  const processListContainer = document.getElementById('processListContainer');
+  const inputPid = document.getElementById('inputPid');
+  const inputAt = document.getElementById('inputAt');
+  const inputBt = document.getElementById('inputBt');
+  const btnAddProcess = document.getElementById('btnAddProcess');
+  const btnSubmitAdd = document.getElementById('btnSubmitAdd');
+  const btnClearAll = document.getElementById('btnClearAll');
+
+  const algoButtons = document.querySelectorAll('.btn-algo');
+  const sjfOptions = document.getElementById('sjfOptions');
+  const checkSrtf = document.getElementById('checkSrtf');
+  const quantumContainer = document.getElementById('quantumContainer');
+  const inputQuantum = document.getElementById('inputQuantum');
+  const mlfqInfoNote = document.getElementById('mlfqInfoNote');
+  const mlfqQueuesView = document.getElementById('mlfqQueuesView');
+
+  const presetStandard = document.getElementById('presetStandard');
+  const presetConvoy = document.getElementById('presetConvoy');
+  const presetMLFQ = document.getElementById('presetMLFQ');
+
+  const btnPlayPause = document.getElementById('btnPlayPause');
+  const playIcon = document.getElementById('playIcon');
+  const playText = document.getElementById('playText');
+  const btnStepBack = document.getElementById('btnStepBack');
+  const btnStepForward = document.getElementById('btnStepForward');
+  const btnResetSim = document.getElementById('btnResetSim');
+  const timeScrubber = document.getElementById('timeScrubber');
+  const scrubberTimeBadge = document.getElementById('scrubberTimeBadge');
+  const speedSelect = document.getElementById('speedSelect');
+
+  const metricTat = document.getElementById('metricTat');
+  const metricWt = document.getElementById('metricWt');
+  const metricUtil = document.getElementById('metricUtil');
+  const metricThroughput = document.getElementById('metricThroughput');
+
+  const ganttTrack = document.getElementById('ganttTrack');
+  const ganttRuler = document.getElementById('ganttRuler');
+  const ganttStatusText = document.getElementById('ganttStatusText');
+
+  const queueTimeLabel = document.getElementById('queueTimeLabel');
+  const cpuCurrentSlot = document.getElementById('cpuCurrentSlot');
+  const readyQueueChips = document.getElementById('readyQueueChips');
+  const mlfqQ0Chips = document.getElementById('mlfqQ0Chips');
+  const mlfqQ1Chips = document.getElementById('mlfqQ1Chips');
+  const mlfqQ2Chips = document.getElementById('mlfqQ2Chips');
+
+  const metricsTableBody = document.getElementById('metricsTableBody');
+  const logContainer = document.getElementById('logContainer');
+  const btnClearLog = document.getElementById('btnClearLog');
+
+  // Modal references
+  const openLabBtn = document.getElementById('openLabBtn');
+  const closeLabBtn = document.getElementById('closeLabBtn');
+  const labModal = document.getElementById('labModal');
+  const labTabBtns = document.querySelectorAll('.lab-tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  // --- PRESETS DATA ---
+  const PRESET_DATA = {
+    standard: [
+      { pid: 'P1', at: 0, bt: 5, priority: 3 },
+      { pid: 'P2', at: 1, bt: 3, priority: 1 },
+      { pid: 'P3', at: 2, bt: 8, priority: 4 },
+      { pid: 'P4', at: 3, bt: 2, priority: 2 },
+      { pid: 'P5', at: 4, bt: 4, priority: 5 }
+    ],
+    convoy: [
+      { pid: 'P1', at: 0, bt: 24, priority: 1 },
+      { pid: 'P2', at: 1, bt: 3, priority: 2 },
+      { pid: 'P3', at: 2, bt: 3, priority: 3 },
+      { pid: 'P4', at: 3, bt: 2, priority: 4 }
+    ],
+    mlfq: [
+      { pid: 'P1', at: 0, bt: 8, priority: 1 },
+      { pid: 'P2', at: 1, bt: 4, priority: 1 },
+      { pid: 'P3', at: 2, bt: 2, priority: 1 },
+      { pid: 'P4', at: 6, bt: 7, priority: 1 }
+    ]
+  };
+
+  // --- SCHEDULING ALGORITHMS ENGINE ---
+  function computeSchedule() {
+    operationLogs = [];
+    if (processes.length === 0) {
+      simulationSchedule = [];
+      simulationTicks = [];
+      processFinalMetrics = {};
+      globalSummary = { avgTat: '0.00', avgWt: '0.00', cpuUtil: '0.0%', throughput: '0.000', totalTime: 0 };
+      return;
+    }
+
+    // Clean clones
+    const procs = processes.map(p => ({
+      pid: p.pid,
+      at: parseInt(p.at, 10) || 0,
+      bt: parseInt(p.bt, 10) || 1,
+      remBt: parseInt(p.bt, 10) || 1,
+      priority: parseInt(p.priority, 10) || 1,
+      ct: 0,
+      tat: 0,
+      wt: 0,
+      rt: -1,
+      completed: false,
+      mlfqLevel: 0,
+      waitSince: 0
+    }));
+
+    if (currentAlgo === 'FCFS') {
+      runFCFS(procs);
+    } else if (currentAlgo === 'SJF') {
+      if (isPreemptive) {
+        runSRTF(procs);
+      } else {
+        runSJFNonPreemptive(procs);
+      }
+    } else if (currentAlgo === 'RR') {
+      runRoundRobin(procs, timeQuantum);
+    } else if (currentAlgo === 'MLFQ') {
+      runMLFQ(procs);
+    }
+
+    calculateGlobalMetrics(procs);
+  }
+
+  // 1. FCFS
+  function runFCFS(procs) {
+    const list = [...procs].sort((a, b) => a.at - b.at);
+    let currentTime = 0;
+    simulationSchedule = [];
+    simulationTicks = [];
+
+    let completedCount = 0;
+    const n = list.length;
+    let tickArrivalsLogged = {};
+
+    while (completedCount < n) {
+      const arrived = list.filter(p => p.at <= currentTime && !p.completed);
+
+      list.forEach(p => {
+        if (p.at === currentTime && !tickArrivalsLogged[p.pid]) {
+          addLog(currentTime, `Process ${p.pid} arrived with Burst Time = ${p.bt}.`, 'arrive');
+          tickArrivalsLogged[p.pid] = true;
+        }
+      });
+
+      if (arrived.length === 0) {
+        const nextAt = Math.min(...list.filter(p => !p.completed).map(p => p.at));
+        for (let t = currentTime; t < nextAt; t++) {
+          simulationTicks.push({
+            t,
+            cpu: null,
+            readyQueue: [],
+            procsState: cloneProcState(list)
+          });
+        }
+        simulationSchedule.push({ pid: 'IDLE', start: currentTime, end: nextAt });
+        currentTime = nextAt;
+        continue;
+      }
+
+      const currentProc = arrived[0];
+      if (currentProc.rt === -1) currentProc.rt = currentTime - currentProc.at;
+
+      addLog(currentTime, `Process ${currentProc.pid} scheduled on CPU (FCFS). Remaining BT: ${currentProc.remBt}.`);
+
+      const start = currentTime;
+      const end = currentTime + currentProc.bt;
+
+      for (let t = start; t < end; t++) {
+        list.forEach(p => {
+          if (p.at === t && !tickArrivalsLogged[p.pid]) {
+            addLog(t, `Process ${p.pid} arrived with Burst Time = ${p.bt}.`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        });
+
+        const inQueue = list.filter(p => p.at <= t && !p.completed && p.pid !== currentProc.pid)
+                            .sort((a, b) => a.at - b.at);
+
+        simulationTicks.push({
+          t,
+          cpu: currentProc.pid,
+          readyQueue: inQueue.map(p => ({ pid: p.pid, remBt: p.remBt })),
+          procsState: cloneProcState(list)
+        });
+        currentProc.remBt--;
+      }
+
+      currentProc.ct = end;
+      currentProc.tat = currentProc.ct - currentProc.at;
+      currentProc.wt = currentProc.tat - currentProc.bt;
+      currentProc.completed = true;
+      completedCount++;
+      currentTime = end;
+
+      simulationSchedule.push({ pid: currentProc.pid, start, end });
+      addLog(end, `Process ${currentProc.pid} completed execution. CT=${currentProc.ct}, TAT=${currentProc.tat}, WT=${currentProc.wt}.`, 'complete');
+    }
+
+    simulationTicks.push({
+      t: currentTime,
+      cpu: null,
+      readyQueue: [],
+      procsState: cloneProcState(list)
+    });
+  }
+
+  // 2. SJF Non-Preemptive
+  function runSJFNonPreemptive(procs) {
+    const list = [...procs];
+    let currentTime = 0;
+    simulationSchedule = [];
+    simulationTicks = [];
+    let completedCount = 0;
+    const n = list.length;
+    let tickArrivalsLogged = {};
+
+    while (completedCount < n) {
+      list.forEach(p => {
+        if (p.at === currentTime && !tickArrivalsLogged[p.pid]) {
+          addLog(currentTime, `Process ${p.pid} arrived with Burst Time = ${p.bt}.`, 'arrive');
+          tickArrivalsLogged[p.pid] = true;
+        }
+      });
+
+      const arrived = list.filter(p => p.at <= currentTime && !p.completed);
+
+      if (arrived.length === 0) {
+        const nextAt = Math.min(...list.filter(p => !p.completed).map(p => p.at));
+        for (let t = currentTime; t < nextAt; t++) {
+          simulationTicks.push({
+            t,
+            cpu: null,
+            readyQueue: [],
+            procsState: cloneProcState(list)
+          });
+        }
+        simulationSchedule.push({ pid: 'IDLE', start: currentTime, end: nextAt });
+        currentTime = nextAt;
+        continue;
+      }
+
+      arrived.sort((a, b) => (a.bt - b.bt) || (a.at - b.at) || a.pid.localeCompare(b.pid));
+      const currentProc = arrived[0];
+
+      if (currentProc.rt === -1) currentProc.rt = currentTime - currentProc.at;
+      addLog(currentTime, `Process ${currentProc.pid} chosen by SJF (Burst Time = ${currentProc.bt}).`);
+
+      const start = currentTime;
+      const end = currentTime + currentProc.bt;
+
+      for (let t = start; t < end; t++) {
+        list.forEach(p => {
+          if (p.at === t && !tickArrivalsLogged[p.pid]) {
+            addLog(t, `Process ${p.pid} arrived with Burst Time = ${p.bt}.`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        });
+
+        const inQueue = list.filter(p => p.at <= t && !p.completed && p.pid !== currentProc.pid)
+                            .sort((a, b) => (a.bt - b.bt) || (a.at - b.at));
+
+        simulationTicks.push({
+          t,
+          cpu: currentProc.pid,
+          readyQueue: inQueue.map(p => ({ pid: p.pid, remBt: p.remBt })),
+          procsState: cloneProcState(list)
+        });
+        currentProc.remBt--;
+      }
+
+      currentProc.ct = end;
+      currentProc.tat = currentProc.ct - currentProc.at;
+      currentProc.wt = currentProc.tat - currentProc.bt;
+      currentProc.completed = true;
+      completedCount++;
+      currentTime = end;
+
+      simulationSchedule.push({ pid: currentProc.pid, start, end });
+      addLog(end, `Process ${currentProc.pid} completed execution. CT=${currentProc.ct}, TAT=${currentProc.tat}, WT=${currentProc.wt}.`, 'complete');
+    }
+
+    simulationTicks.push({
+      t: currentTime,
+      cpu: null,
+      readyQueue: [],
+      procsState: cloneProcState(list)
+    });
+  }
+
+  // 3. SRTF (Shortest Remaining Time First) Preemptive
+  function runSRTF(procs) {
+    const list = [...procs];
+    let currentTime = 0;
+    simulationSchedule = [];
+    simulationTicks = [];
+    let completedCount = 0;
+    const n = list.length;
+    let tickArrivalsLogged = {};
+    let lastRunningPid = null;
+
+    while (completedCount < n) {
+      list.forEach(p => {
+        if (p.at === currentTime && !tickArrivalsLogged[p.pid]) {
+          addLog(currentTime, `Process ${p.pid} arrived (Burst Time = ${p.bt}).`, 'arrive');
+          tickArrivalsLogged[p.pid] = true;
+        }
+      });
+
+      const arrived = list.filter(p => p.at <= currentTime && !p.completed);
+
+      if (arrived.length === 0) {
+        if (lastRunningPid !== 'IDLE') {
+          simulationSchedule.push({ pid: 'IDLE', start: currentTime, end: currentTime + 1 });
+          lastRunningPid = 'IDLE';
+        } else {
+          simulationSchedule[simulationSchedule.length - 1].end = currentTime + 1;
+        }
+        simulationTicks.push({
+          t: currentTime,
+          cpu: null,
+          readyQueue: [],
+          procsState: cloneProcState(list)
+        });
+        currentTime++;
+        continue;
+      }
+
+      arrived.sort((a, b) => (a.remBt - b.remBt) || (a.at - b.at) || a.pid.localeCompare(b.pid));
+      const chosen = arrived[0];
+
+      if (chosen.rt === -1) chosen.rt = currentTime - chosen.at;
+
+      if (lastRunningPid !== chosen.pid) {
+        if (lastRunningPid && lastRunningPid !== 'IDLE') {
+          addLog(currentTime, `Preemption: Process ${chosen.pid} (Rem BT: ${chosen.remBt}) preempts ${lastRunningPid}.`, 'preempt');
+        } else {
+          addLog(currentTime, `Process ${chosen.pid} scheduled on CPU (Rem BT: ${chosen.remBt}).`);
+        }
+        simulationSchedule.push({ pid: chosen.pid, start: currentTime, end: currentTime + 1 });
+        lastRunningPid = chosen.pid;
+      } else {
+        simulationSchedule[simulationSchedule.length - 1].end = currentTime + 1;
+      }
+
+      const inQueue = list.filter(p => p.at <= currentTime && !p.completed && p.pid !== chosen.pid)
+                          .sort((a, b) => (a.remBt - b.remBt) || (a.at - b.at));
+
+      simulationTicks.push({
+        t: currentTime,
+        cpu: chosen.pid,
+        readyQueue: inQueue.map(p => ({ pid: p.pid, remBt: p.remBt })),
+        procsState: cloneProcState(list)
+      });
+
+      chosen.remBt--;
+      currentTime++;
+
+      if (chosen.remBt === 0) {
+        chosen.ct = currentTime;
+        chosen.tat = chosen.ct - chosen.at;
+        chosen.wt = chosen.tat - chosen.bt;
+        chosen.completed = true;
+        completedCount++;
+        addLog(currentTime, `Process ${chosen.pid} completed execution. CT=${chosen.ct}, TAT=${chosen.tat}, WT=${chosen.wt}.`, 'complete');
+      }
+    }
+
+    simulationTicks.push({
+      t: currentTime,
+      cpu: null,
+      readyQueue: [],
+      procsState: cloneProcState(list)
+    });
+  }
+
+  // 4. Round Robin (RR)
+  function runRoundRobin(procs, quantum) {
+    const list = [...procs].sort((a, b) => a.at - b.at || a.pid.localeCompare(b.pid));
+    let currentTime = 0;
+    simulationSchedule = [];
+    simulationTicks = [];
+    let completedCount = 0;
+    const n = list.length;
+    let readyQueue = [];
+    let enqueued = {};
+    let tickArrivalsLogged = {};
+
+    function checkArrivals(t) {
+      list.forEach(p => {
+        if (p.at <= t && !enqueued[p.pid] && !p.completed) {
+          readyQueue.push(p);
+          enqueued[p.pid] = true;
+          if (!tickArrivalsLogged[p.pid]) {
+            addLog(p.at, `Process ${p.pid} arrived (BT = ${p.bt}) and joined Ready Queue.`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        }
+      });
+    }
+
+    checkArrivals(currentTime);
+
+    while (completedCount < n) {
+      if (readyQueue.length === 0) {
+        const nextP = list.find(p => !p.completed);
+        if (nextP && nextP.at > currentTime) {
+          const nextAt = nextP.at;
+          for (let t = currentTime; t < nextAt; t++) {
+            simulationTicks.push({
+              t,
+              cpu: null,
+              readyQueue: [],
+              procsState: cloneProcState(list)
+            });
+          }
+          simulationSchedule.push({ pid: 'IDLE', start: currentTime, end: nextAt });
+          currentTime = nextAt;
+          checkArrivals(currentTime);
+          continue;
+        }
+      }
+
+      const currentProc = readyQueue.shift();
+      if (currentProc.rt === -1) currentProc.rt = currentTime - currentProc.at;
+
+      const slice = Math.min(quantum, currentProc.remBt);
+      addLog(currentTime, `Process ${currentProc.pid} allocated CPU for time slice = ${slice} (Remaining BT = ${currentProc.remBt}).`);
+
+      const start = currentTime;
+      const end = currentTime + slice;
+
+      for (let t = start; t < end; t++) {
+        list.forEach(p => {
+          if (p.at === t && !enqueued[p.pid] && !p.completed && p.pid !== currentProc.pid) {
+            readyQueue.push(p);
+            enqueued[p.pid] = true;
+            if (!tickArrivalsLogged[p.pid]) {
+              addLog(t, `Process ${p.pid} arrived (BT = ${p.bt}) & joined Ready Queue.`, 'arrive');
+              tickArrivalsLogged[p.pid] = true;
+            }
+          }
+        });
+
+        simulationTicks.push({
+          t,
+          cpu: currentProc.pid,
+          readyQueue: readyQueue.map(p => ({ pid: p.pid, remBt: p.remBt })),
+          procsState: cloneProcState(list)
+        });
+        currentProc.remBt--;
+      }
+
+      currentTime = end;
+
+      list.forEach(p => {
+        if (p.at <= currentTime && !enqueued[p.pid] && !p.completed && p.pid !== currentProc.pid) {
+          readyQueue.push(p);
+          enqueued[p.pid] = true;
+          if (!tickArrivalsLogged[p.pid]) {
+            addLog(currentTime, `Process ${p.pid} arrived (BT = ${p.bt}) & joined Ready Queue.`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        }
+      });
+
+      simulationSchedule.push({ pid: currentProc.pid, start, end });
+
+      if (currentProc.remBt === 0) {
+        currentProc.ct = currentTime;
+        currentProc.tat = currentProc.ct - currentProc.at;
+        currentProc.wt = currentProc.tat - currentProc.bt;
+        currentProc.completed = true;
+        completedCount++;
+        addLog(currentTime, `Process ${currentProc.pid} completed execution. CT=${currentProc.ct}, TAT=${currentProc.tat}, WT=${currentProc.wt}.`, 'complete');
+      } else {
+        readyQueue.push(currentProc);
+        addLog(currentTime, `Quantum expired for ${currentProc.pid} (Rem BT: ${currentProc.remBt}). Returned to tail of Ready Queue.`, 'preempt');
+      }
+    }
+
+    simulationTicks.push({
+      t: currentTime,
+      cpu: null,
+      readyQueue: [],
+      procsState: cloneProcState(list)
+    });
+  }
+
+  // 5. MLFQ (Multi-Level Feedback Queue with Aging)
+  function runMLFQ(procs) {
+    const list = [...procs].sort((a, b) => a.at - b.at);
+    let currentTime = 0;
+    simulationSchedule = [];
+    simulationTicks = [];
+    let completedCount = 0;
+    const n = list.length;
+
+    let Q0 = []; // RR q=2
+    let Q1 = []; // RR q=4
+    let Q2 = []; // FCFS
+    let enqueued = {};
+    let tickArrivalsLogged = {};
+
+    const AGING_THRESHOLD = 12;
+
+    function checkArrivals(t) {
+      list.forEach(p => {
+        if (p.at <= t && !enqueued[p.pid] && !p.completed) {
+          p.mlfqLevel = 0;
+          p.waitSince = t;
+          Q0.push(p);
+          enqueued[p.pid] = true;
+          if (!tickArrivalsLogged[p.pid]) {
+            addLog(p.at, `Process ${p.pid} entered system at topmost Queue 0 (RR q=2).`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        }
+      });
+    }
+
+    function checkAging(t) {
+      for (let i = Q2.length - 1; i >= 0; i--) {
+        if (t - Q2[i].waitSince >= AGING_THRESHOLD) {
+          const aged = Q2.splice(i, 1)[0];
+          aged.mlfqLevel = 0;
+          aged.waitSince = t;
+          Q0.push(aged);
+          addLog(t, `Aging: Process ${aged.pid} starved in Q2 (> ${AGING_THRESHOLD} units). Promoted to Queue 0!`, 'arrive');
+        }
+      }
+      for (let i = Q1.length - 1; i >= 0; i--) {
+        if (t - Q1[i].waitSince >= AGING_THRESHOLD) {
+          const aged = Q1.splice(i, 1)[0];
+          aged.mlfqLevel = 0;
+          aged.waitSince = t;
+          Q0.push(aged);
+          addLog(t, `Aging: Process ${aged.pid} starved in Q1. Promoted to Queue 0!`, 'arrive');
+        }
+      }
+    }
+
+    checkArrivals(currentTime);
+
+    while (completedCount < n) {
+      checkAging(currentTime);
+
+      if (Q0.length === 0 && Q1.length === 0 && Q2.length === 0) {
+        const nextP = list.find(p => !p.completed);
+        if (nextP && nextP.at > currentTime) {
+          const nextAt = nextP.at;
+          for (let t = currentTime; t < nextAt; t++) {
+            simulationTicks.push({
+              t,
+              cpu: null,
+              readyQueue: [],
+              mlfq: { q0: [], q1: [], q2: [] },
+              procsState: cloneProcState(list)
+            });
+          }
+          simulationSchedule.push({ pid: 'IDLE', start: currentTime, end: nextAt });
+          currentTime = nextAt;
+          checkArrivals(currentTime);
+          continue;
+        }
+      }
+
+      let activeQLevel = 0;
+      let currentProc = null;
+      let quantum = 2;
+
+      if (Q0.length > 0) {
+        activeQLevel = 0;
+        currentProc = Q0.shift();
+        quantum = 2;
+      } else if (Q1.length > 0) {
+        activeQLevel = 1;
+        currentProc = Q1.shift();
+        quantum = 4;
+      } else if (Q2.length > 0) {
+        activeQLevel = 2;
+        currentProc = Q2.shift();
+        quantum = currentProc.remBt;
+      }
+
+      if (!currentProc) continue;
+
+      if (currentProc.rt === -1) currentProc.rt = currentTime - currentProc.at;
+
+      const slice = Math.min(quantum, currentProc.remBt);
+      addLog(currentTime, `Process ${currentProc.pid} from Q${activeQLevel} running on CPU (Allocated: ${slice}, Rem BT: ${currentProc.remBt}).`);
+
+      const start = currentTime;
+      const end = currentTime + slice;
+
+      for (let t = start; t < end; t++) {
+        list.forEach(p => {
+          if (p.at === t && !enqueued[p.pid] && !p.completed && p.pid !== currentProc.pid) {
+            p.mlfqLevel = 0;
+            p.waitSince = t;
+            Q0.push(p);
+            enqueued[p.pid] = true;
+            if (!tickArrivalsLogged[p.pid]) {
+              addLog(t, `Process ${p.pid} entered system at Queue 0 (RR q=2).`, 'arrive');
+              tickArrivalsLogged[p.pid] = true;
+            }
+          }
+        });
+
+        const combinedReady = [...Q0, ...Q1, ...Q2];
+
+        simulationTicks.push({
+          t,
+          cpu: currentProc.pid,
+          readyQueue: combinedReady.map(p => ({ pid: p.pid, remBt: p.remBt })),
+          mlfq: {
+            q0: Q0.map(p => ({ pid: p.pid, remBt: p.remBt })),
+            q1: Q1.map(p => ({ pid: p.pid, remBt: p.remBt })),
+            q2: Q2.map(p => ({ pid: p.pid, remBt: p.remBt }))
+          },
+          procsState: cloneProcState(list)
+        });
+        currentProc.remBt--;
+      }
+
+      currentTime = end;
+
+      list.forEach(p => {
+        if (p.at <= currentTime && !enqueued[p.pid] && !p.completed && p.pid !== currentProc.pid) {
+          p.mlfqLevel = 0;
+          p.waitSince = currentTime;
+          Q0.push(p);
+          enqueued[p.pid] = true;
+          if (!tickArrivalsLogged[p.pid]) {
+            addLog(currentTime, `Process ${p.pid} entered system at Queue 0 (RR q=2).`, 'arrive');
+            tickArrivalsLogged[p.pid] = true;
+          }
+        }
+      });
+
+      simulationSchedule.push({ pid: currentProc.pid, start, end });
+
+      if (currentProc.remBt === 0) {
+        currentProc.ct = currentTime;
+        currentProc.tat = currentProc.ct - currentProc.at;
+        currentProc.wt = currentProc.tat - currentProc.bt;
+        currentProc.completed = true;
+        completedCount++;
+        addLog(currentTime, `Process ${currentProc.pid} completed execution. CT=${currentProc.ct}, TAT=${currentProc.tat}, WT=${currentProc.wt}.`, 'complete');
+      } else {
+        currentProc.waitSince = currentTime;
+        if (activeQLevel === 0) {
+          currentProc.mlfqLevel = 1;
+          Q1.push(currentProc);
+          addLog(currentTime, `Quantum exhausted in Q0. Demoted ${currentProc.pid} to Queue 1 (RR q=4).`, 'preempt');
+        } else if (activeQLevel === 1) {
+          currentProc.mlfqLevel = 2;
+          Q2.push(currentProc);
+          addLog(currentTime, `Quantum exhausted in Q1. Demoted ${currentProc.pid} to Queue 2 (FCFS).`, 'preempt');
+        } else {
+          Q2.push(currentProc);
+        }
+      }
+    }
+
+    simulationTicks.push({
+      t: currentTime,
+      cpu: null,
+      readyQueue: [],
+      mlfq: { q0: [], q1: [], q2: [] },
+      procsState: cloneProcState(list)
+    });
+  }
+
+  function cloneProcState(list) {
+    return list.map(p => ({
+      pid: p.pid,
+      at: p.at,
+      bt: p.bt,
+      remBt: p.remBt,
+      ct: p.ct,
+      tat: p.tat,
+      wt: p.wt,
+      rt: p.rt,
+      completed: p.completed
+    }));
+  }
+
+  function calculateGlobalMetrics(procs) {
+    const n = procs.length;
+    let sumTat = 0;
+    let sumWt = 0;
+    let maxCt = 0;
+    let totalBusy = 0;
+
+    processFinalMetrics = {};
+
+    procs.forEach(p => {
+      sumTat += p.tat;
+      sumWt += p.wt;
+      if (p.ct > maxCt) maxCt = p.ct;
+      totalBusy += p.bt;
+      processFinalMetrics[p.pid] = { ...p };
+    });
+
+    const totalTime = maxCt;
+    const cpuUtil = totalTime > 0 ? ((totalBusy / totalTime) * 100) : 0;
+    const throughput = totalTime > 0 ? (n / totalTime) : 0;
+
+    globalSummary = {
+      avgTat: (sumTat / n).toFixed(2),
+      avgWt: (sumWt / n).toFixed(2),
+      cpuUtil: cpuUtil.toFixed(1) + '%',
+      throughput: throughput.toFixed(3),
+      totalTime: totalTime
+    };
+
+    metricTat.textContent = globalSummary.avgTat;
+    metricWt.textContent = globalSummary.avgWt;
+    metricUtil.textContent = globalSummary.cpuUtil;
+    metricThroughput.textContent = globalSummary.throughput;
+    ganttStatusText.textContent = `Total execution: ${totalTime} units`;
+
+    timeScrubber.max = totalTime;
+    currentScrubberTime = totalTime;
+    timeScrubber.value = totalTime;
+    scrubberTimeBadge.textContent = `t = ${totalTime}`;
+  }
+
+  function addLog(t, message, type = 'normal') {
+    operationLogs.push({ t, message, type });
+  }
+
+  // --- RENDERING FUNCTIONS ---
+
+  function renderProcessSidebarList() {
+    processListContainer.innerHTML = '';
+    processCountBadge.textContent = `${processes.length} processes`;
+
+    processes.forEach((p, idx) => {
+      const color = getProcessColor(p.pid);
+      const row = document.createElement('div');
+      row.className = 'process-row-item';
+      row.id = `proc_row_${p.pid}`;
+      row.innerHTML = `
+        <span class="badge-pid" style="background: ${color.bg}; color: ${color.text};">${p.pid}</span>
+        <input type="number" min="0" max="99" value="${p.at}" data-idx="${idx}" data-field="at" title="Arrival Time">
+        <input type="number" min="1" max="99" value="${p.bt}" data-idx="${idx}" data-field="bt" title="Burst Time">
+        <button class="btn-trash" data-idx="${idx}" title="Delete Process">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      `;
+      processListContainer.appendChild(row);
+    });
+
+    const maxPidNum = processes.reduce((max, p) => {
+      const num = parseInt(p.pid.replace(/\D/g, ''), 10) || 0;
+      return num > max ? num : max;
+    }, 0);
+    inputPid.value = `P${maxPidNum + 1}`;
+  }
+
+  function renderGanttChart() {
+    ganttTrack.innerHTML = '';
+    ganttRuler.innerHTML = '';
+
+    const totalTime = globalSummary.totalTime || 1;
+    const markPositions = new Set([0]);
+
+    simulationSchedule.forEach((block, idx) => {
+      const duration = block.end - block.start;
+      const widthPct = (duration / totalTime) * 100;
+      markPositions.add(block.end);
+
+      const div = document.createElement('div');
+      div.className = 'gantt-block';
+      div.style.width = `${widthPct}%`;
+      div.title = `${block.pid}: t=${block.start} to ${block.end} (Duration: ${duration})`;
+
+      if (block.pid === 'IDLE') {
+        div.classList.add('gantt-idle');
+        div.textContent = 'IDLE';
+      } else {
+        const color = getProcessColor(block.pid);
+        div.style.backgroundColor = color.bg;
+        div.style.color = color.text;
+        div.textContent = block.pid;
+      }
+
+      div.addEventListener('click', () => {
+        pauseSimulation();
+        setScrubberTime(block.start);
+      });
+
+      div.id = `ganttBlock_${idx}`;
+      ganttTrack.appendChild(div);
+    });
+
+    const sortedMarks = Array.from(markPositions).sort((a, b) => a - b);
+    sortedMarks.forEach(tVal => {
+      const leftPct = (tVal / totalTime) * 100;
+      const mark = document.createElement('div');
+      mark.className = 'ruler-mark';
+      mark.style.left = `${leftPct}%`;
+      mark.textContent = `${tVal}`;
+      ganttRuler.appendChild(mark);
+    });
+  }
+
+  function renderStepState(t) {
+    if (simulationTicks.length === 0) return;
+    const tick = simulationTicks[Math.min(t, simulationTicks.length - 1)];
+
+    queueTimeLabel.textContent = `t = ${t}`;
+    scrubberTimeBadge.textContent = `t = ${t}`;
+    timeScrubber.value = t;
+
+    // Highlight Gantt Block currently active
+    const blocks = document.querySelectorAll('.gantt-block');
+    blocks.forEach((b, idx) => {
+      const blockData = simulationSchedule[idx];
+      if (blockData && t >= blockData.start && t < blockData.end) {
+        b.classList.add('active-executing');
+      } else {
+        b.classList.remove('active-executing');
+      }
+    });
+
+    // Update CPU Slot
+    if (tick.cpu) {
+      const color = getProcessColor(tick.cpu);
+      cpuCurrentSlot.innerHTML = `
+        <span class="badge-pid" style="background: ${color.bg}; color: ${color.text}; font-size: 0.82rem; padding: 3px 10px;">
+          ${tick.cpu}
+        </span>
+        <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-cyan);">
+          Running (t = ${t})
+        </span>
+      `;
+    } else {
+      cpuCurrentSlot.innerHTML = `<span class="idle-text">IDLE</span>`;
+    }
+
+    // Update Ready Queue Chips
+    if (tick.readyQueue && tick.readyQueue.length > 0) {
+      readyQueueChips.innerHTML = tick.readyQueue.map(item => {
+        const color = getProcessColor(item.pid);
+        return `
+          <div class="queue-chip">
+            <span class="badge-pid" style="background: ${color.bg}; color: ${color.text}; padding: 2px 6px;">${item.pid}</span>
+            <span class="rem-bt">BT: ${item.remBt}</span>
+          </div>
+        `;
+      }).join('');
+    } else {
+      readyQueueChips.innerHTML = `<span class="idle-text" style="font-size: 0.78rem;">empty</span>`;
+    }
+
+    // Update MLFQ views if MLFQ
+    if (currentAlgo === 'MLFQ' && tick.mlfq) {
+      renderMlfqChips(mlfqQ0Chips, tick.mlfq.q0);
+      renderMlfqChips(mlfqQ1Chips, tick.mlfq.q1);
+      renderMlfqChips(mlfqQ2Chips, tick.mlfq.q2);
+    }
+
+    // Update Table metrics rows
+    renderMetricsTable(tick);
+
+    // Filter and update logs up to t
+    renderLogsUpToTime(t);
+  }
+
+  function renderMlfqChips(container, queueArr) {
+    if (!queueArr || queueArr.length === 0) {
+      container.innerHTML = `<span class="idle-text" style="font-size: 0.72rem;">empty</span>`;
+      return;
+    }
+    container.innerHTML = queueArr.map(item => {
+      const color = getProcessColor(item.pid);
+      return `
+        <div class="queue-chip" style="padding: 2px 5px;">
+          <span class="badge-pid" style="background: ${color.bg}; color: ${color.text}; padding: 1px 4px; font-size: 0.7rem;">${item.pid}</span>
+          <span class="rem-bt" style="font-size: 0.68rem;">BT: ${item.remBt}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderMetricsTable(tick) {
+    metricsTableBody.innerHTML = '';
+    const stateList = tick ? tick.procsState : processes.map(p => ({
+      pid: p.pid,
+      at: p.at,
+      bt: p.bt,
+      ct: '-',
+      tat: '-',
+      wt: '-',
+      completed: false
+    }));
+
+    stateList.forEach(p => {
+      const finalP = processFinalMetrics[p.pid] || {};
+      const color = getProcessColor(p.pid);
+      const isRunning = tick && tick.cpu === p.pid;
+      const isCompleted = p.completed || (tick && tick.t >= finalP.ct && finalP.ct > 0);
+      const hasArrived = tick ? tick.t >= p.at : false;
+
+      let statusHtml = '';
+      if (isCompleted) {
+        statusHtml = `<span class="status-badge status-completed">COMPLETED</span>`;
+      } else if (isRunning) {
+        statusHtml = `<span class="status-badge status-running">RUNNING</span>`;
+      } else if (hasArrived) {
+        statusHtml = `<span class="status-badge status-ready">READY</span>`;
+      } else {
+        statusHtml = `<span class="status-badge status-waiting">NOT ARRIVED</span>`;
+      }
+
+      const displayCt = isCompleted ? (finalP.ct ?? p.ct) : '-';
+      const displayTat = isCompleted ? (finalP.tat ?? p.tat) : '-';
+      const displayWt = isCompleted ? (finalP.wt ?? p.wt) : '-';
+
+      const tr = document.createElement('tr');
+      if (isRunning) tr.classList.add('row-active');
+
+      tr.innerHTML = `
+        <td><span class="badge-pid" style="background: ${color.bg}; color: ${color.text};">${p.pid}</span></td>
+        <td>${p.at}</td>
+        <td>${p.bt}</td>
+        <td>${displayCt}</td>
+        <td>${displayTat}</td>
+        <td>${displayWt}</td>
+        <td>${statusHtml}</td>
+      `;
+      metricsTableBody.appendChild(tr);
+    });
+  }
+
+  function renderLogsUpToTime(t) {
+    const visibleLogs = operationLogs.filter(log => log.t <= t);
+    logContainer.innerHTML = '';
+
+    if (visibleLogs.length === 0) {
+      logContainer.innerHTML = `<span class="idle-text" style="font-size: 0.75rem;">Waiting for simulation start...</span>`;
+      return;
+    }
+
+    visibleLogs.forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      let typeClass = '';
+      if (entry.type === 'complete') typeClass = 'log-highlight-complete';
+      else if (entry.type === 'preempt') typeClass = 'log-highlight-preempt';
+      else if (entry.type === 'arrive') typeClass = 'log-highlight-arrive';
+
+      div.innerHTML = `
+        <span class="log-time">[t=${entry.t}]</span>
+        <span class="log-text ${typeClass}">${entry.message}</span>
+      `;
+      logContainer.appendChild(div);
+    });
+
+    logContainer.scrollTop = logContainer.scrollHeight;
+  }
+
+  // --- PLAYBACK CONTROLS ---
+
+  function setScrubberTime(t) {
+    const maxT = globalSummary.totalTime || 0;
+    currentScrubberTime = Math.max(0, Math.min(t, maxT));
+    renderStepState(currentScrubberTime);
+  }
+
+  function togglePlayPause() {
+    if (isPlaying) {
+      pauseSimulation();
+    } else {
+      startSimulation();
+    }
+  }
+
+  function startSimulation() {
+    if (currentScrubberTime >= globalSummary.totalTime) {
+      currentScrubberTime = 0;
+    }
+    isPlaying = true;
+    playIcon.innerHTML = '&#10074;&#10074;';
+    playText.textContent = 'Pause';
+    btnPlayPause.classList.add('btn-play');
+
+    playIntervalTimer = setInterval(() => {
+      if (currentScrubberTime < globalSummary.totalTime) {
+        currentScrubberTime++;
+        setScrubberTime(currentScrubberTime);
+      } else {
+        pauseSimulation();
+      }
+    }, playbackSpeed);
+  }
+
+  function pauseSimulation() {
+    isPlaying = false;
+    clearInterval(playIntervalTimer);
+    playIcon.innerHTML = '&#9658;';
+    playText.textContent = 'Play';
+  }
+
+  function stepForward() {
+    pauseSimulation();
+    if (currentScrubberTime < globalSummary.totalTime) {
+      setScrubberTime(currentScrubberTime + 1);
+    }
+  }
+
+  function stepBack() {
+    pauseSimulation();
+    if (currentScrubberTime > 0) {
+      setScrubberTime(currentScrubberTime - 1);
+    }
+  }
+
+  function resetSimulation() {
+    pauseSimulation();
+    setScrubberTime(0);
+  }
+
+  // --- REFRESH / RUN WORKFLOW ---
+  function runFullSimulation() {
+    computeSchedule();
+    renderGanttChart();
+    renderStepState(currentScrubberTime);
+  }
+
+  // --- EVENT LISTENERS ---
+
+  // Add Process
+  function addProcessFromInput() {
+    const pid = inputPid.value.trim().toUpperCase() || `P${processes.length + 1}`;
+    let at = parseInt(inputAt.value, 10);
+    let bt = parseInt(inputBt.value, 10);
+
+    if (isNaN(at)) at = 0;
+    if (isNaN(bt)) bt = 2;
+
+    if (at < 0) at = 0;
+    if (bt <= 0) bt = 1;
+
+    if (processes.some(p => p.pid === pid)) {
+      alert(`Process ID "${pid}" already exists.`);
+      return;
+    }
+
+    processes.push({ pid, at, bt, priority: 1 });
+    renderProcessSidebarList();
+
+    // Trigger highlight on the new row
+    const newRow = document.getElementById(`proc_row_${pid}`);
+    if (newRow) newRow.classList.add('highlight-insert');
+
+    // Reset inputs
+    inputAt.value = '';
+    inputBt.value = '';
+
+    runFullSimulation();
+  }
+
+  btnAddProcess.addEventListener('click', addProcessFromInput);
+  btnSubmitAdd.addEventListener('click', addProcessFromInput);
+
+  // Clear All
+  btnClearAll.addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear all processes?')) {
+      processes = [];
+      renderProcessSidebarList();
+      runFullSimulation();
+    }
+  });
+
+  // Inline Process Edits & Delete
+  processListContainer.addEventListener('change', (e) => {
+    const idx = e.target.dataset.idx;
+    const field = e.target.dataset.field;
+    if (idx !== undefined && field) {
+      const val = parseInt(e.target.value, 10);
+      if (field === 'at') processes[idx].at = Math.max(0, isNaN(val) ? 0 : val);
+      if (field === 'bt') processes[idx].bt = Math.max(1, isNaN(val) ? 1 : val);
+      runFullSimulation();
+    }
+  });
+
+  processListContainer.addEventListener('click', (e) => {
+    const trashBtn = e.target.closest('.btn-trash');
+    if (trashBtn) {
+      const idx = parseInt(trashBtn.dataset.idx, 10);
+      const row = trashBtn.closest('.process-row-item');
+      if (row) {
+        row.classList.add('highlight-delete');
+        setTimeout(() => {
+          processes.splice(idx, 1);
+          renderProcessSidebarList();
+          runFullSimulation();
+        }, 300);
+      } else {
+        processes.splice(idx, 1);
+        renderProcessSidebarList();
+        runFullSimulation();
+      }
+    }
+  });
+
+  // Algorithm Buttons
+  algoButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      algoButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAlgo = btn.dataset.algo;
+
+      if (currentAlgo === 'FCFS') {
+        algoHeaderBadge.textContent = 'FCFS / SJF-SRTF / Round Robin / MLFQ';
+        sjfOptions.style.display = 'none';
+        quantumContainer.style.display = 'none';
+        mlfqInfoNote.style.display = 'none';
+        mlfqQueuesView.style.display = 'none';
+      } else if (currentAlgo === 'SJF') {
+        algoHeaderBadge.textContent = 'FCFS / SJF-SRTF / Round Robin / MLFQ';
+        sjfOptions.style.display = 'block';
+        quantumContainer.style.display = 'none';
+        mlfqInfoNote.style.display = 'none';
+        mlfqQueuesView.style.display = 'none';
+      } else if (currentAlgo === 'RR') {
+        algoHeaderBadge.textContent = `Round Robin (Quantum Q = ${timeQuantum})`;
+        sjfOptions.style.display = 'none';
+        quantumContainer.style.display = 'flex';
+        mlfqInfoNote.style.display = 'none';
+        mlfqQueuesView.style.display = 'none';
+      } else if (currentAlgo === 'MLFQ') {
+        algoHeaderBadge.textContent = 'MLFQ (Multi-Level Feedback Queue with Aging)';
+        sjfOptions.style.display = 'none';
+        quantumContainer.style.display = 'none';
+        mlfqInfoNote.style.display = 'block';
+        mlfqQueuesView.style.display = 'flex';
+      }
+
+      runFullSimulation();
+    });
+  });
+
+  // Preemptive SRTF Checkbox
+  checkSrtf.addEventListener('change', () => {
+    isPreemptive = checkSrtf.checked;
+    runFullSimulation();
+  });
+
+  // Quantum Input
+  inputQuantum.addEventListener('change', () => {
+    const q = parseInt(inputQuantum.value, 10);
+    timeQuantum = Math.max(1, isNaN(q) ? 2 : q);
+    inputQuantum.value = timeQuantum;
+    if (currentAlgo === 'RR') {
+      algoHeaderBadge.textContent = `Round Robin (Quantum Q = ${timeQuantum})`;
+    }
+    runFullSimulation();
+  });
+
+  // Presets
+  presetStandard.addEventListener('click', () => {
+    setActivePresetBtn(presetStandard);
+    processes = JSON.parse(JSON.stringify(PRESET_DATA.standard));
+    currentAlgo = 'SJF';
+    isPreemptive = false;
+    checkSrtf.checked = false;
+    setActiveAlgoBtn('SJF');
+    sjfOptions.style.display = 'block';
+    quantumContainer.style.display = 'none';
+    mlfqInfoNote.style.display = 'none';
+    mlfqQueuesView.style.display = 'none';
+    renderProcessSidebarList();
+    runFullSimulation();
+  });
+
+  presetConvoy.addEventListener('click', () => {
+    setActivePresetBtn(presetConvoy);
+    processes = JSON.parse(JSON.stringify(PRESET_DATA.convoy));
+    currentAlgo = 'FCFS';
+    setActiveAlgoBtn('FCFS');
+    sjfOptions.style.display = 'none';
+    quantumContainer.style.display = 'none';
+    mlfqInfoNote.style.display = 'none';
+    mlfqQueuesView.style.display = 'none';
+    renderProcessSidebarList();
+    runFullSimulation();
+  });
+
+  presetMLFQ.addEventListener('click', () => {
+    setActivePresetBtn(presetMLFQ);
+    processes = JSON.parse(JSON.stringify(PRESET_DATA.mlfq));
+    currentAlgo = 'MLFQ';
+    setActiveAlgoBtn('MLFQ');
+    sjfOptions.style.display = 'none';
+    quantumContainer.style.display = 'none';
+    mlfqInfoNote.style.display = 'block';
+    mlfqQueuesView.style.display = 'flex';
+    renderProcessSidebarList();
+    runFullSimulation();
+  });
+
+  function setActivePresetBtn(btn) {
+    [presetStandard, presetConvoy, presetMLFQ].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function setActiveAlgoBtn(algoName) {
+    algoButtons.forEach(b => {
+      if (b.dataset.algo === algoName) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+  }
+
+  // Playback Events
+  btnPlayPause.addEventListener('click', togglePlayPause);
+  btnStepForward.addEventListener('click', stepForward);
+  btnStepBack.addEventListener('click', stepBack);
+  btnResetSim.addEventListener('click', resetSimulation);
+
+  timeScrubber.addEventListener('input', (e) => {
+    pauseSimulation();
+    setScrubberTime(parseInt(e.target.value, 10));
+  });
+
+  speedSelect.addEventListener('change', (e) => {
+    playbackSpeed = parseInt(e.target.value, 10);
+    if (isPlaying) {
+      pauseSimulation();
+      startSimulation();
+    }
+  });
+
+  btnClearLog.addEventListener('click', () => {
+    logContainer.innerHTML = `<span class="idle-text" style="font-size: 0.75rem;">Log cleared.</span>`;
+  });
+
+  // Modal Events
+  openLabBtn.addEventListener('click', () => {
+    labModal.classList.add('open');
+  });
+
+  closeLabBtn.addEventListener('click', () => {
+    labModal.classList.remove('open');
+  });
+
+  labModal.addEventListener('click', (e) => {
+    if (e.target === labModal) {
+      labModal.classList.remove('open');
+    }
+  });
+
+  labTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      labTabBtns.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const targetPane = document.getElementById(btn.dataset.tab);
+      if (targetPane) targetPane.classList.add('active');
+    });
+  });
+
+  // FAQ Accordion
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      q.parentElement.classList.toggle('open');
+    });
+  });
+
+  // Window Copy Code helper
+  window.copyCode = function(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+      navigator.clipboard.writeText(el.innerText).then(() => {
+        alert('C source code copied to clipboard!');
+      });
+    }
+  };
+
+  // --- INITIALIZE ---
+  renderProcessSidebarList();
+  runFullSimulation();
+
+})();
+</script>
+
+</body>
+</html>
